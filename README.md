@@ -1,0 +1,2 @@
+# golang_test
+基于golang的gin编程框架和gorm基础库，实现一个商品的无限级分类管理功能
