@@ -24,6 +24,7 @@ func Search(c *gin.Context){
 	typeid := c.Param("typeid")
 	var product []ProductInfo
 	// Get all matched records
+	//查找条件parentid=typeid
 	db.Where(&ProductInfo{ParentId: typeid}).Find(&product)
 	if err:=db.Find(&ProductInfo{}).Error;err!=nil{
 		c.AbortWithStatus(404)
@@ -84,9 +85,12 @@ func main(){
 	defer db.Close()
 	//创建表，自动迁移（把结构体和数据表对应）
 	db.AutoMigrate(&ProductInfo{})
+	//创建数据表
 	//initTable()
 	router:=gin.Default()
+	//查找，参数为typeid
 	router.GET("/search/:typeid",Search)
+	//增加商品，参数为typeid，name，parentid
 	router.POST("/add", Add)
 	router.Run(":8080")
 }
