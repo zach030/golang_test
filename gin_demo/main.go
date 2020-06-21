@@ -8,39 +8,61 @@ import (
 	"net/http"
 )
 
-type ProductInfo struct {
+type ProductInfoTree struct {
 	ID      int `json:"id"`
 	TypeId   string `json:"type_id"`
 	Name     string `json:"name"`
 	ParentId string `json:"parent_id"`
+	Children []ProductInfoTree `json:"children"`
 }
-
+type ProductInfo struct {
+	ID int `json:"id"`
+	TypeId string `json:"type_id"`
+	Name string `json:"name"`
+	ParentId string `json:"parent_id"`
+}
 var(
 	db *gorm.DB
 	err error
+	//存放商品的切片
+	product []ProductInfo
 )
+
+//递归实现(返回树状结果得数据)
+func productTree(allCate []ProductInfo, pid string) []ProductInfoTree {
+	var arr []ProductInfoTree
+	for _, v := range allCate {
+		//循环遍历
+		if pid == v.ParentId {
+			//找到子类
+			ctree := ProductInfoTree{}
+			//赋值
+			ctree.TypeId = v.TypeId
+			ctree.ParentId = v.ParentId
+			ctree.Name = v.Name
+			//以此子类作为父类进行递归
+			sonCate := productTree(allCate, v.TypeId)
+			ctree.Children = sonCate
+			arr = append(arr, ctree)
+		}
+	}
+	return arr
+}
 
 func Search(c *gin.Context){
 	typeid := c.Param("typeid")
-	var product []ProductInfo
-	// Get all matched records
-	//查找条件parentid=typeid
-	db.Where(&ProductInfo{ParentId: typeid}).Find(&product)
-	if err:=db.Find(&ProductInfo{}).Error;err!=nil{
-		c.AbortWithStatus(404)
-		fmt.Println(err)
-	}else{
-		c.JSON(http.StatusOK, product)
-	}
+	arr:= productTree(product, typeid)
+	fmt.Println(arr)
+	c.JSON(http.StatusOK, arr)
 }
 
 func Add(c *gin.Context){
 	//新增商品
-	var newPro ProductInfo
+	var newPro ProductInfoTree
 	typeid:=c.PostForm("typeid")
 	name:=c.PostForm("name")
 	parentid:=c.PostForm("parentid")
-	newPro = ProductInfo{TypeId: typeid, Name: name, ParentId: parentid}
+	newPro = ProductInfoTree{TypeId: typeid, Name: name, ParentId: parentid}
 	db.Create(&newPro)
 	err := db.Debug().Save(&newPro).Error
 	if err != nil {
@@ -89,8 +111,10 @@ func main(){
 	//initTable()
 	router:=gin.Default()
 	//查找，参数为typeid
+	//product为寻找范围
+	db.Find(&product)
 	router.GET("/search/:typeid",Search)
-	//增加商品，参数为typeid，name，parentid
+	//添加，参数为typeid,name,parentid
 	router.POST("/add", Add)
 	router.Run(":8080")
 }
